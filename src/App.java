@@ -1,43 +1,39 @@
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.List;
 import java.util.Map;
 
 public class App {
 
+    private static List<Content> contents;
+
     public static void main(String[] args) throws Exception {
 
-        // fazer uma conexão HTTP e buscar os top 250 filmes
-        String url = "https://imdb-api.com/en/API/Top250Movies/k_lu8ycn8k";
+        // fazer uma conexão HTTP e buscar os top 250 contents
         // String url = "https://raw.githubusercontent.com/alura-cursos/imersao-java-2-api/main/TopMovies.json";
-        URI address = URI.create(url);
-        var client = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder(address).GET().build();
-        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-        String body = response.body();
+        String url = "https://imdb-api.com/en/API/Top250Movies/k_lu8ycn8k";
+        ContentExtractor extractor = new ContentExtractorImdb();
 
-        // extrair só os dados que interessam (titulo, poster, classificação)
-        var parser = new JsonParser();
-        List<Map<String, String>> listaDeFilmes = parser.parse(body);
+        // String url = "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&start_date=2022-06-20&end_date=2022-06-25";
+        // ContentExtractorNasa extractor = new ContentExtractorNasa();
+
+        var http = new ClienteHttp();
+        String json = http.getData(url);
 
         // exibir e manipular os dados 
-        var generator = new PicGenerator();
-        for (Map<String,String> filme : listaDeFilmes) {
-            String urlImage = filme.get("image");
-            String title = filme.get("title");
-            
-            InputStream inputStream = new URL(urlImage).openStream();
-            String fileName = title + ".png";
+        List<Content> contents = extractor.contentExtract(json);
 
+        var generator = new PicGenerator();
+        // for (Map<String,String> content : contentList) {
+        for (int i=0; i<3; i++) {
+            Content content = contents.get(i);
+            
+            InputStream inputStream = new URL(content.getImageUrl()).openStream();
+            String fileName = "output/" + content.getTitle() + ".png";
 
             generator.cria(inputStream,fileName);
 
-            System.out.println(title);
+            System.out.println(content.getTitle());
             System.out.println();
         }
     }
